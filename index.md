@@ -38,3 +38,10 @@ Large cloud storage providers (CSPs) have emerged out of the increasing need to 
 
 ---
 ## Works cited
+
+---
+## Our Team
+
+We are all available for new opportunities, feel free to reach out!
+
+{% include team.html %}
