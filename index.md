@@ -40,8 +40,23 @@ There are a couple possible solutions to the problem of data loss. One solution 
 ### Centralized cloud storage and its problems
 Large cloud storage providers (CSPs) have emerged out of the increasing need to store and retrieve data easily, quickly, and cheaply. Some prime examples of these CSPs are DropBox, Google Drive, and Amazon S3. Though the specific features, user experiences and software differ amongst these providers, they have at least one thing in common: they, as service providers, not only store users’ files, but are entrusted by users to secure those files from privacy breaches, corruption, and loss. In other words, if the storage provider does not take steps to ensure data integrity, privacy, and basic availability, nobody will; in fact, nobody can. The ability to provide these features are centralized to a single provider.
 
+### Decentralized cloud storage
+
 ---
 ## Building Layr
+
+### A two-node network
+
+### A three-or-more-node network with redundancy
+
+### Locating shards and nodes on the network
+
+### Enforcing data integrity
+
+### Ensuring privacy
+
+### Promoting participation and cooperation
+
 
 ---
 ## Works cited
