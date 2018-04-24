@@ -12,6 +12,11 @@ Upload/Download Demo:
 
 ![Upload Download In Process](/img/UploadFileDemo.gif)
 
+{: .center}
+Audit/Patch Demo:
+
+![Audit Patch In Process](/img/fileAuditPatch.gif)
+
 ---
 <h2> Table of Contents </h2>
 
