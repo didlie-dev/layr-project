@@ -10,12 +10,7 @@ use-site-title: true
 {: .center}
 Demo:
 
-![Upload Download In Process](/img/UploadFileDemo.gif)
-
-{: .center}
-Audit/Patch Demo:
-
-![Audit Patch In Process](/img/fileAuditPatch.gif)
+![Layr In Process](/img/all_combine.gif)
 
 ---
 <h2> Table of Contents </h2>
