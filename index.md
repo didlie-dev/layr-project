@@ -8,7 +8,7 @@ use-site-title: true
 [Layr](https://github.com/layr-team/Layr) is a decentralized (p2p) cloud storage system built atop Kademlia DHT that enforces data integrity, privacy, and availability through proofs of retrievability, redundancy, and encryption, with cryptocurrency-based incentive scheme
 
 {: .center}
-Upload/Download Demo:
+Demo:
 
 ![Upload Download In Process](/img/UploadFileDemo.gif)
 
