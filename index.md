@@ -52,6 +52,8 @@ Large cloud storage providers (CSPs) have emerged out of the increasing need to 
 
 ### Promoting participation and cooperation
 
+---
+## Future plans
 
 ---
 ## Works cited
