@@ -10,7 +10,7 @@ use-site-title: true
 {: .center}
 Demo:
 
-![Layr In Process](/img/all_combine.gif)
+![Layr In Process](/img/all_combine2.gif)
 
 ---
 <h2> Table of Contents </h2>
