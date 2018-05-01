@@ -378,8 +378,12 @@ Our upload process for an entire file’s shards now looks like the diagram belo
   <center>
     <img src="diagrams/redundant_upload_process.jpg" alt="redundant upload process" />
   </center>
+  <figcaption>
+    <small><strong>Redundant upload process</strong></small>
+  </figcaption>
 </figure>
 
+---
 #### Additional privacy benefits
 Now that we’re able to upload a file to multiple file shards across multiple nodes our files are more private than they were before. Previously, if a host gained access to to user’s private key the whole file’s privacy would be instantly compromised. Now, even if the host gains access to the key they will only have access to a small part of the file’s data. In terms of data privacy, our system is theoretically much stronger than a centralized storage systems’.
 
