@@ -525,8 +525,15 @@ When thinking about strategies to incentivize a group of users behaviors, we nee
 
 Relying on generosity or even points does not seem like a realistic motivator as storage space have bandwidth and hardware costs. Our next option is compensation as many decentralized systems, just like centralized systems, financially compensate the storage provider. However,  a decentralized system  is built upon the principles of privacy, anonymity, and distributed points of failure, so it does not make sense to use a centralized provider for users to transact with each other, such as PayPal, Venmo, Google Wallet, etc. A system which is potentially anonymous and decentralized like Layr is Filecoin’s storage-as-value concept, but this system has additional complications and limitations such as preventing potential uploaders from uploading unless they first hosted data on the network. When we consider the strategies that are strong, fit within our system, and are not overly complex, it turns out using cryptocurrency based payments is the strongest solution. 
 
-(brands picture needed)
-The list of incentive models and examples we considered
+<figure>
+  <center>
+    <img src="diagrams/payment_models_example.jpg" alt="payment methods example" />
+  </center>
+  <figcaption>
+    <small><strong>The list of incentive models and examples we considered
+    </strong></small>
+  </figcaption>
+</figure>
 
 The Stellar network is a good choice here because of its robust JavaScript SDK,  extremely low transaction fees, and TestNet, which allows us to spin up test wallets that acted just like genuine wallets on the standard network. Further, each test wallet is funded with 10,000 native tokens, called Lumens.
 
