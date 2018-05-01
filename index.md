@@ -307,6 +307,7 @@ This works ok, but won’t work well as our network grows in size for a couple r
 - Difficult to maintain consistency. Each of these individual lists would need to be updated whenever a node left or joined the network to maintain a consist representation of the network’s state.
 - List bloat. A large n of nodes will make our node list grow too large to be handled efficiently. What if we have millions or billions of nodes on our network? An O(n) space complexity for our routing nodes list will not work well in that case.
 
+&nbsp;
 #### A more sophisticated routing scheme: “closeness”
 We now know that unfortunately we can’t maintain giant, comprehensive lists of all nodes on our network. Stepping away from the world of nodes and files, let’s think about another type of network: human social networks. There are many people in the world, but if we want to find a person we thankfully don’t need to know the contact information of everyone in the world. Let’s look at a somewhat contrived example where we assume that the best way to reach another person that we don’t know ourselves is to contact people we do know who are geographically closer to the person we’re trying to reach. Here’s how someone named Alice in San Francisco, California might iteratively search through her contacts, and contact’s contacts, for someone in New York, New York. Each time she relies on the geographically closest contact to Bob query their list of contacts for geographically closer contacts, and so on.
 
@@ -596,6 +597,7 @@ __generate__ that hash is (i.e. the raw file data itself). Therefore, the file h
   </center>
   <figcaption>
     <small><strong>
+    Data owner (left) draws up a contract and deposit funds to the contract. Data owner then locks those funds with a hash of the file contents it will send to the data host (right). Data owner sends file data plus contact information. The host then uses the file data to unlock the funds in the contract.
     </strong></small>
   </figcaption>
 </figure>
