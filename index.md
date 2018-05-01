@@ -208,6 +208,15 @@ to decrypt the encrypted content. If a user with another keys tries to decrypt t
 will return an unreadable output. Having the encryption happen client-side and not on the host’s 
 device reduces the risk of tampering.
 
+<figure>
+  <center>
+    <img src="diagrams/wrong_key_open_file.jpg" alt="open file with the wrong key" />
+  </center>
+  <figcaption>
+    <small><strong>Need the right key to read the real content</strong></small>
+  </figcaption>
+</figure>
+
 Symmetric encryption is a particular class of encryption algorithms where the same key 
 used to encrypt data can be used to decrypt that data.
 
