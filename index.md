@@ -23,8 +23,8 @@ we encountered while building Layr, but as an introduction to the problem space 
 
 ---
 ## Introduction to cloud storage
-We upload our data to companies that help us with our cloud storage needs everyday 
-(AWS, Dropbox, Google, Apple, etc.). These services are incredibly convenient and 
+We upload our data to companies that help us with our cloud storage needs every day
+(AWS, Dropbox, Google, Apple, etc.). These services are incredibly convenient and
 usually work well, but growing security and data privacy concerns, as well as the costs
 associated with these services, have lead others to think about alternatives to 
 centralized cloud storage. In response, we built an experimental project called Layr 
@@ -615,7 +615,7 @@ Although our pay-by-upload approach encourages hosts to participate in the netwo
 At present, a user storing a file on the network needs run a manual patch every so often. This is not very convenient for users, so we plan on exploring automation options in this area in the future.
 
 ### NAT Traversal
-Layr nodes are only able to communicate with other Layr nodes that are openly addressable IP location on the internet. In other words, if a peer node has a private IP address because it is behind a NAT router it will not be able to effectively communicate on the network. What this means in practical terms is, servers on hosted services like Digital Ocean or Amazon EC2 work with Layr but your personal devices at home often do not. While our team did not have time to implement any of the NAT strategies we researched, we plan to introduce one or more into the project in the future.
+Layr nodes are only able to communicate with other Layr nodes that have an openly addressable IP location on the internet. In other words, if a peer node has a private IP address because it is behind a NAT router, it will not be able to effectively communicate on the network. What this means in practical terms is, servers on hosted services like Digital Ocean or Amazon EC2 work with Layr but your personal devices at home often do not. While our team did not have time to implement any of the NAT strategies we researched, we plan to introduce one or more into the project in the future.
 
 ---
 ## Works cited
