@@ -99,7 +99,6 @@ uniform. If the two systems were mapped on a globe, they might look like this.
   </center>
   <figcaption>
     <small><strong>Centralized system on the left. Decentralized system on the right.
-    We’ll explain later on why some of the hops are short and some are longer in a decentralized system later.
     </strong></small>
   </figcaption>
 </figure>
@@ -159,12 +158,12 @@ const node2 = new Node();
 node2.createServer(1756, '127.0.0.1');
 ```
 
-The other server `node1` boots up on a different port, connects to `node2`’s current port, and 
+The other server `node1` boots up, connects to `node2`’s current port, and 
 writes a JSON message to `node1` telling it to store a file.
 
 ```javascript
 const node1 = new Node();
-node1.createServer(1755, '127.0.0.1');
+node1.createServer(1756, '127.0.0.1');
 
 const clientConnection = node1.connect(1756, '127.0.0.1');
 const message = {
@@ -206,7 +205,7 @@ random initialization vector of 32 bits.[2][3]
 As long as the user maintains sole access to their private key, they alone have the power 
 to decrypt the encrypted content. If a user with another keys tries to decrypt the file’s contents, it 
 will return an unreadable output. Having the encryption happen client-side and not on the host’s 
-device reduces the risk of tampering.
+device means that the host only ever receives encrypted content.
 
 <figure>
   <center>
@@ -414,7 +413,7 @@ __redundancy scheme__.
 During our research, we came across two redundancy schemes used by many people. The first is called
 __mirroring__ and the second is __erasure coding__. Erasure coding introduces “wildcard”, or encoded, shards that can “substitute” in for any lost shard, which decreases the probability of losing access to a file. This a more advanced technique that even larger entities such as Storj had not implemented until recently[9]. We therefore opted to use mirroring, which is simply the distribution of multiple full copies of a file. 
 
-Given a single file, if a file owner is using mirroring, then they will upload complete copies of that file to multiple hosts. If one host’s hardware fails, or if a host deletes the data, another host has that file intact.
+If one host’s hardware fails, or if a host deletes the data, another host has that file intact.
 
 In terms of implementing mirroring in our system, the first problem to solve is how to reduce the likelihood that redundant shards will be sent to the same hosts node. Remember that when we distribute a shard to the network, the shard is sent to the node with the closest id to the shard’s id. Therefore if each redundant shard has the same id, there’s a high probability all shards will be sent to the same node.
 
@@ -514,7 +513,7 @@ If an audit reveals that a shard is unretrievable on the network, the easiest so
 
 It's important to note that all redundant copies of a shard need to fail their audits in order for the file to be unretrievable.
 
-The current Layr implementation uses file patching for shards, as described above. The result of a file patch is that a new copy of a shard for each unretrievable copy is generated and distributed to the network, assuming there is a least one retrievable copy on the network to begin with. The old copies, unretrievable copies are also removed from the manifest and replaced with the new copies. If no shard copies exist on the network for a given piece of shard content, then the file owner will need to upload the file to the network once again.
+The current Layr implementation uses file patching for shards, as described above. The result of a file patch is that a new copy of a shard for each unretrievable copy is generated and distributed to the network, assuming there is a least one retrievable copy on the network to begin with. The unretrievable copies are also removed from the manifest and replaced with the new copies. If no shard copies exist on the network for a given piece of shard content, then the file owner will need to upload the file to the network once again.
 
 <figure>
   <center>
@@ -597,8 +596,8 @@ Applying this to data storage, a smart contract should, first and foremost, ensu
 4. __Send data__: The file owner sends the shard file and public ID of contract to the host.
 5. __Host unlocks funds__: The host uses the file data (not the hash) to attempt to unlock the funds from the account, which is only possible if the host receives the correct information.
 
-Note that we use the hash to unlock the funds in the contract: the preimage used to 
-__generate__ that hash is (i.e. the raw file data itself). Therefore, the file host needs to possess the file data upon signing the contract , since pre-generating a hash of the file data would not work. This is important because it guarantees that the host has the data at the time of receiving payment. Imagine if the host could unlock the funds with the hash of the file data: the host could then generate the hash, delete the data, and then use the pre-generated hash to get paid. This would mean that proof of data possession and payment were not truly coupled together.
+Note that the hash of the file’s contents is not what the file host uses to unlock the funds in the contract. The file host hands the file contents itself to Stellar and then Stellar hashes the file contents and validates that hash against the hash locking the funds.
+Therefore, the file host needs to possess the file data upon signing the contract , since pre-generating a hash of the file data would not work. This is important because it guarantees that the host has the data at the time of receiving payment. Imagine if the host could unlock the funds with the hash of the file data: the host could then generate the hash, delete the data, and then use the pre-generated hash to get paid. This would mean that proof of data possession and payment were not truly coupled together.
 
 <figure>
   <center>
