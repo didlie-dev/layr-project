@@ -509,7 +509,7 @@ Proofs of retrievability is an ongoing area of research and the literature is re
 #### Patching
 Proofs of retrievability communicate the state of remotely stored data, but do not fix data that has been compromised. Next we need to empower a file owner to easily fix instances when a shard’s redundancy across the network decreases because of data corruption or loss. 
 
-If an audit reveals that a shard is unretrievable on the network, the easiest solution is to simply re-upload that shard. Our specification of cloud storage allows file owners to delete their files locally, so this solution is untenable But if the network holds another copy of that shard on the network, and that copy is retrievable, then the file owner can use that copy to generate a new copy, effectively replacing the corrupted shard with an uncorrupted copy.
+If an audit reveals that a shard is unretrievable on the network, the easiest solution is to simply re-upload that shard. Our specification of cloud storage allows file owners to delete their files locally, so this solution is untenable. But if the network holds another copy of that shard on the network, and that copy is retrievable, then the file owner can use that copy to generate a new copy, effectively replacing the corrupted shard with an uncorrupted copy.
 
 It's important to note that all redundant copies of a shard need to fail their audits in order for the file to be unretrievable.
 
