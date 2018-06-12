@@ -64,8 +64,8 @@ files and the user who wants to store files on the cloud.
 ### Centralized cloud storage
 
 Most existing cloud storage services today are what we call centralized services.
-Two familiar examples are Amazon’s S3 and Dropbox, and here's how they well-functioning
-cloud storage services.
+Two familiar examples are Amazon’s S3 and Dropbox, and here's how they created
+strong cloud file storage services.
 
 1. __File ownership:__ Files are protected via server side authentication.
 2. __On-demand upload/download:__ Dedicated servers and specialized teams help these
@@ -217,8 +217,9 @@ const host = new Node();
 host.createServer(ports.host, '127.0.0.1');
 ```
 
-The other server trying to store a file on the network, the owner, boots up on a different port, establishes a connection to the `host`’s port, and
-writes a JSON message using the connection to `host` telling it to store a file.
+The other server trying to store a file on the network, the owner, boots up on a
+different port, establishes a connection to the `host`’s port, and writes a JSON message
+using the connection to `host` telling it to store a file.
 
 ```javascript
 const owner = new Node();
@@ -264,10 +265,10 @@ bits.
   </center>
 </figure>
 
-As long as the user maintains sole access to their private key, they alone have the power
-to decrypt the encrypted content. If a user with another keys tries to decrypt the file’s contents, it
-will return an unreadable output. Having the encryption happen client-side and not on the host’s
-device reduces the risk of tampering.
+As long as the user maintains sole access to their private key, they alone have the
+power to decrypt the encrypted content. If a user with another keys tries to decrypt the
+file’s contents, it will return an unreadable output. Having the encryption happen
+client-side and not on the host’s device reduces the risk of tampering.
 
 Symmetric encryption is a particular class of encryption algorithms where the same key
 used to encrypt some data is be used to decrypt the same data.
@@ -387,12 +388,20 @@ doing so.
 
 ### Locating shards and nodes on the network
 
-Now that our systems contains file shards and a network of nodes, our file upload process has become more complicated. The core problem is if we randomly distribute our shards across the network, we currently have no system for retrieving them.
+Now that our systems contains file shards and a network of nodes, our file upload
+process has become more complicated. The core problem is if we randomly distribute our
+shards across the network, we currently have no system for retrieving them.
 
 1. Retrievability: As we mentioned if we upload a shard we need to be able find it again
-2. Even distribution: We need to figure out a way to more or less evenly distribute the nodes across the network because we don’t want to “overload” one node with a large number of files until its hard drive becomes full.
+2. Even distribution: We need to figure out a way to more or less evenly distribute the
+   nodes across the network because we don’t want to “overload” one node with a large
+   number of files until its hard drive becomes full.
 
-The first solution to this problem was to maintain a full list of all node contact information for the uploading node to use. As the file owner uploads each successive shard, the owner will need to reference a complete list of nodes in order to send the a new host another shard for that file. For each upload, we would record the node and host pair’s data in the in the manifest.
+The first solution to this problem was to maintain a full list of all node contact
+information for the uploading node to use. As the file owner uploads each successive
+shard, the owner will need to reference a complete list of nodes in order to send the a
+new host another shard for that file. For each upload, we would record the node and host
+pair’s data in the in the manifest.
 
 <figure>
   <center>
@@ -405,11 +414,18 @@ The first solution to this problem was to maintain a full list of all node conta
 
 This works ok, but won’t work well as our network grows in size for a couple reasons:
 
-- All nodes are potential uploaders. Therefore each node needs to hold its complete own node list.
-- Difficult to maintain consistency. Each of these individual lists would need to be updated whenever a node left or joined the network to maintain a consist representation of the network’s state.
-- List bloat. A large _n_ of nodes will make our node list grow too large to be handled efficiently. What if we have millions or billions of nodes on our network? An O(n) space complexity for our node routing list will not work well in that case.
+- All nodes are potential uploaders. Therefore each node needs to hold its own complete
+  node list.
+- Difficult to maintain consistency. Each of these individual lists would need to be
+  updated whenever a node left or joined the network to maintain a consist
+  representation of the network’s state.
+- List bloat. A large _n_ of nodes will make our node list grow too large to be handled
+  efficiently. What if we have millions or billions of nodes on our network? An O(n)
+  space complexity for our node routing list will not work well in that case.
 
-&nbsp;
+Since this approach won't scale, we'll instead need to devise another more efficient
+method to locate shards on the network.
+
 #### A more sophisticated routing scheme: “closeness”
 
 We now know that unfortunately we can’t maintain giant, comprehensive lists of all nodes
@@ -417,15 +433,18 @@ on our network. To come up with an a better solution to this problem, let's step
 from the world of nodes and files, let’s think about another type of network: human
 social networks.
 
-There are many people in the world, but if we want to find a person we
-thankfully don’t need to know the contact information of everyone in the world. Let’s
-imagine at a somewhat contrived example where we assume that the best way to reach another
+There are many people in the world, and if we want to locate one person in particular
+who isn't near us, we thankfully can do so without needing to know the contact
+information of everyone else in the world. One way to find another person is through our
+personal contacts, which is the basis for the following example.
+
+Let’s imagine at a somewhat contrived situation where we the best way to reach another
 person that we don’t know ourselves is to contact people we do know who are
 geographically closer to the person we’re trying to reach. Here’s how someone named
 Alice in San Francisco, California might iteratively search through her contacts, and
-contact’s contacts, for someone in New York, New York. Each time she relies on the
-geographically closest contact to Bob query their list of contacts for geographically
-closer contacts, and so on.
+contact’s contacts, for someone named Bob in New York, New York. Each time she relies on
+the geographically closest contact to Bob to query their respective list of contacts for
+geographically closer contacts, and so on.
 
 <figure>
   <center>
@@ -436,28 +455,37 @@ closer contacts, and so on.
   </figcaption>
 </figure>
 
-Let’s go back to thinking about the problem of one node needing to upload a file to another node.
-The method we use will need to a) be repeatable, because we want to use the same process to find the
-shard when we download it later and b) not require a full list of nodes on the network for reasons
-we covered above. The method we’ll use to decide the node-shard relationship will be a type of
-__logical closeness__: the node id “closest” to the file id will be the node to host the file.
+Let’s go back to thinking about the problem of one node needing to upload a file to
+another node. The method we use will need to:
 
-It would require going into too much detail to explain this process, but what we will say is that a Kademlia distributed hash table (DHT) provides the routing and communication protocol between nodes[5]. The Kadmelia is a more widely used flavor of DHT, for example by BitTorrent and Ethereum[6][7].
+1) Be repeatable: We want to use the same process to find the shard when we download it
+later
+2) Not require a full list of nodes: We previously described why we can't use this
+approach.
 
-#### Kademlia RPCs
-The specific protocol that Kademlia provides for communication are in four remote procedure calls (RPCs):
+The method we’ll use to decide the node-shard relationship will be a type of
+__logical closeness__: the node id “closest” to the file id will be the node to host the
+file.
 
-- PING: Tests whether the node is online.
-- FIND_NODE: Iteratively finds another node on the network
-- STORE: Stores a value, such as a shard ID on a node to indicate where the file is stored
-- FIND_VALUE: Allows you to retrieve a value stored on some node, such as a stored file ID
+We used Kademlia, a distributed hash table (DHT) [14], which is a set of data structures
+and protocols that allows us to find nodes, store values, and retrieve values across the
+network. Kademlia incorporates logical closeness to provide efficient routing and
+communication protocols between nodes. Examples of Kademlia in use are BitTorrent [15]
+and Ethereum [16]. The Kademlia protocols and structure is complex, and implementing it
+was not the goal of our project, so use a library Kadence [17] based on Kademlia as our
+node communication layer.
 
-There is of course more detail, but like we mentioned above it would take some time to provide a full explanation. Another reason we’re not going into full detail here is that we used another library Kadence to provide a Kademlia implementation for us, so it’s not the topic we want to discuss here[8].
+If you would like to read more about Kademlia, we encourage you to visit to look into
+some of the resources linked here [18][19].
 
 #### Updated upload and distribution process
-Now that we are using Kademlia via Kadence as a tool to manage shard upload and retrieval, our system for distributing a shard has gotten a bit more complex, so we’ll go over that next.
 
-Due to the increasing complexity of our system, we have refactored our LayrNode code to contain two “sub-nodes” that manage different responsibilities:
+Now that we are using Kademlia via Kadence as a tool to manage shard upload and
+retrieval, our system for distributing a shard has gotten a bit more complex, so we’ll
+go over that next.
+
+Due to the increasing complexity of our system, we have refactored our LayrNode code to
+contain two “sub-nodes” that manage different responsibilities:
 
 - FileNode: File processing, encryption, managing manifest, personal, and hosted files
 - KadNode: Node-to-node communication
@@ -470,7 +498,8 @@ Here is the updated process for distributing a shard to network.
   </center>
 </figure>
 
-To allow KadNodes to find the contact information of another KadNode’s FileNode, we effectively extended the Kademlia RPCs by adding FILENODE.
+To allow KadNodes to find the contact information of another KadNode’s FileNode, we
+effectively extended the Kademlia RPCs by adding FILENODE.
 
 ```javascript
 module.exports.kadFilePlugin = function(node) {
@@ -492,7 +521,12 @@ module.exports.kadFilePlugin = function(node) {
 };
 ```
 
-Our upload process for an entire file’s shards now looks like the diagram below. One thing to note is we can’t guarantee that each shard will go to a distinct node. However if there a sizeable number of nodes on the network each with 160 bit ids the likelihood of one node hosting all file shards is relatively low.
+One thing to note about using Kademlia is we can’t guarantee each shard will go to a
+distinct node. However if there are a sizeable number of nodes on the network, each one
+node id exists on a 160 bit keyspace so the likelihood of one node hosting all file
+shards is relatively low.
+
+Our upload process for an entire file’s shards now looks like the diagram below.
 
 <figure>
   <center>
