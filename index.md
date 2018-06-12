@@ -21,7 +21,7 @@ If that was at all confusing, don't worry! We unpack all of these concepts below
 ---
 ## Preface
 
-This an overview how we built Layr - a decentralized cloud storage system. We hope that
+This an overview of how we built Layr - a decentralized cloud storage system. We hope that
 this overview will serve not only as a narrative detailing the problems and solutions
 we encountered while building Layr, but also as an introduction to the problem space of
 decentralized cloud storage in general.
@@ -58,8 +58,8 @@ definition.
 their discretion.
 3. __No data loss:__ A user can retrieve a previously uploaded file without
 data loss.
-4. __Incentives:__ The right incentives are in place between the hosting service provider
-and the user of the service.
+4. __Incentives:__ The right incentives are in place between the party storing and hosting
+files and the user who wants to store files on the cloud.
 
 ### Centralized cloud storage
 
@@ -96,15 +96,36 @@ disadvantages.
 1) The first disadvantage of a centralized system is that it can threaten the
 confidentiality of user data.
 
-**Internal privacy breaches**: When a user sends a file to a typical centralized storage provider, they are trusting that the company employees won’t view or make use of that data. Additionally, they trust that the company won’t unreasonably share their data with third parties, such as governments, which are increasingly requesting more data from providers such as Google[1]. Unfortunately it’s are not possible to completely ensure that either of these situations won’t arise unless the the system supports client-side encryption, which we’ll explain and demonstrate later [2].
+**Internal privacy breaches**: When a user sends a file to a typical centralized
+storage provider, they are trusting that the company employees won’t view or make use of
+that data.  Additionally, they trust that the company won’t unreasonably share their
+data with third parties, such as governments, which are increasingly requesting more
+data from providers such as Google [1]. Unfortunately it’s are not possible to
+completely ensure that either of these situations won’t arise unless the the system
+supports client-side encryption, which we’ll explain and demonstrate later [2].
 
-**External privacy breaches**: Valuable, centrally stored data is a target for external parties, such as hackers. The attacks on iCloud in 2014 and Dropbox in 2012 are examples of this type of incident occurring in the cloud storage realm [3][4]. According to a whitepaper put out by Storj, a company with their own decentralized storage product, the centralized model is weaker “ [b]ecause client-side encryption is nonstandard, the traditional cloud is vulnerable to a variety of security threats, including man-in-the-middle attacks, malware, and application flaws that expose private consumer and corporate data.”[5]
+**External privacy breaches**: Valuable, centrally stored data is a target for external
+parties, such as hackers. The attacks on iCloud in 2014 and Dropbox in 2012 are examples
+of this type of incident occurring in the cloud storage realm [3][4]. According
+to a whitepaper put out by Storj, a company with their own decentralized storage
+product, the centralized model is weaker "[b]ecause client-side encryption is
+nonstandard, the traditional cloud is vulnerable to a variety of security threats,
+including man-in-the-middle attacks, malware, and application flaws that expose private
+consumer and corporate data."[5]
 
-2) The second disadvantage to a centralized architecture is that it introduces single points of failure.
+2) The second disadvantage to a centralized architecture is that it introduces single
+points of failure.
 
-Single points of failure in a system can crop up from employee error, such as case in 2017 when an Amazon S3 engineer crippled almost 150,000 domains for four hours [6]. According to Storj, centralized services are less reliable “because many storage devices rely on the same infrastructure, failures is correlated across files and systems” [7].
+Single points of failure in a system can crop up from employee error, such as case in
+2017 when an Amazon S3 engineer crippled almost 150,000 domains for four hours [6].
+According to Storj, centralized services are less reliable “because many storage devices
+rely on the same infrastructure, failures is correlated across files and systems” [7].
 
-Additionally, the distance between nodes varies greatly, which affects the usability of the service on the other side of the world due to the additional latency. Let’s explore an alternative model: decentralized file storage.
+Additionally, the diagram above shows how the distance between nodes can vary. In
+practical terms, this means a user who is located far away from where their files are
+stored will experience more latency than users located closer to their files.
+
+So let’s explore an alternative model: decentralized file storage.
 
 ### Decentralized cloud storage
 
@@ -142,15 +163,17 @@ ownership, on-demand upload/download, no data loss, and incentives.
 ## Building Layr
 
 ### A two-node network
+
 A P2P network is a network of autonomous peers that share a part of their hardware
-resources directly with other peers[1]. Let’s start with the simplest version of a peer-to-peer
-(P2P) network: two nodes directly communicating with each other. Since we are building a file
-storage system, the resource peers are sharing is storage space. We’ll build this first iteration
-with simple TCP servers and JSON messaging to transfer files.
+resources directly with other peers [8]. Let’s start with the simplest version of a
+peer-to-peer (P2P) network: two nodes directly communicating with each other. Since we
+are building a file storage system, the resource peers are sharing is storage space.
+We’ll build this first iteration with simple TCP servers and JSON messaging to transfer
+files.
 
 <figure>
   <center>
-    <img src="diagrams/simple_p2p_system.jpg" alt="simple p2p system" />
+    <img src="diagrams/simple_p2p_system.png" alt="simple p2p system" />
   </center>
 </figure>
 
@@ -159,6 +182,7 @@ data and the `data` event fires.
 
 ```javascript
 const tcpUtils = require('../utils/tcp').tcp;
+const ports = require('../constants').ports;
 const fs = require('fs');
 
 class Node {
@@ -166,12 +190,15 @@ class Node {
     return tcpUtils.createServer(port, host, this.fileProcessingCallback.bind(this));
   }
 
+  connect(port, host, callback) {
+    return tcpUtils.connect(port, host, callback);
+  }
+
   storeFile(fileName) {
     const readStream = fs.createReadStream(fileName);
     const writeStream = fs.createWriteStream(fileName)
     readStream.pipe(writeStream);
   }
-
 
   fileProcessingCallback(serverConnection) {
     serverConnection.on('data', (data, error) => {
@@ -186,18 +213,18 @@ class Node {
   // ...
 }
 
-const node2 = new Node();
-node2.createServer(1756, '127.0.0.1');
+const host = new Node();
+host.createServer(ports.host, '127.0.0.1');
 ```
 
-The other server `node1` boots up on a different port, connects to `node2`’s current port, and
-writes a JSON message to `node1` telling it to store a file.
+The other server trying to store a file on the network, the owner, boots up on a different port, establishes a connection to the `host`’s port, and
+writes a JSON message using the connection to `host` telling it to store a file.
 
 ```javascript
-const node1 = new Node();
-node1.createServer(1755, '127.0.0.1');
+const owner = new Node();
+owner.createServer(ports.owner, '127.0.0.1');
 
-const clientConnection = node1.connect(1756, '127.0.0.1');
+const clientConnection = owner.connect(ports.server, '127.0.0.1');
 const message = {
   messageType: "STORE_FILE",
   fileName: 'example.txt',
@@ -206,8 +233,8 @@ const message = {
 clientConnection.write(JSON.stringify(message));
 ```
 
-Success! We’ve created a working peer-to-peer file storage system because Node1 is
-able to upload a file, delete it, and then request it back from Node2 at a later time.
+Success! We’ve created a working peer-to-peer file storage system because the `owner` node is
+able to upload a file, delete it, and then request it back from `host` at a later time.
 
 Although this system satisfies our minimum working definition of cloud storage, it is not a
 robust cloud storage system. It doesn’t enforce a file owner’s privileged access to the files they
@@ -215,18 +242,21 @@ store on the network, nor is it highly available, resistant to data loss, or pro
 model for participants.
 
 ### File ownership
-The first problem with our naive system is that a file owner’s files are not private: a file
-host could easily read the contents of any files they store.To ensure that a file owner maintains
-sole read access, we need to figure out how to ensure the files we send to hosts across our
-decentralized storage system are completely private to the file owner. One property that
-differentiates a file sharing service from a file storage service is that the files in a storage service
-are owned by a particular user, and that user should be the only one who can read the contents
-of their files. Our first step towards this goal will be to utilize client-side file encryption.
+
+The first problem with our naive system is that a file owner’s files are not private: a
+file host could easily read the contents of any files they store. To ensure that a file
+owner maintains sole read access, we need to figure out how to ensure the files we send
+to hosts across our decentralized storage system are completely private to the file
+owner. One property that differentiates a file sharing service from a file storage
+service is that the files in a storage service are owned by a particular user, and that
+user should be the only one who can read the contents of their files. Our first step
+towards this goal will be to utilize client-side file encryption.
 
 Client-side encryption is a technique where the file owner uses a pre-generated private
-key to encrypt their data before that data is uploaded to the network. Making a secure key is
-important, and in our case we use an AES key with a length of 256 bits that we create with a
-random initialization vector of 32 bits.[2][3]
+key to encrypt their data before that data is uploaded to the network. Making a secure
+key is important, and in our case we use an Advanced Encryption Standard (AES) [10] key
+with a length of 256 bits that we create with a random initialization vector [11] of 32
+bits.
 
 <figure>
   <center>
@@ -240,7 +270,7 @@ will return an unreadable output. Having the encryption happen client-side and n
 device reduces the risk of tampering.
 
 Symmetric encryption is a particular class of encryption algorithms where the same key
-used to encrypt data can be used to decrypt that data.
+used to encrypt some data is be used to decrypt the same data.
 
 <figure>
   <center>
@@ -252,45 +282,71 @@ used to encrypt data can be used to decrypt that data.
 </figure>
 
 Another option is asymmetric encryption, which works by using private and public key
-pairs to allow multiple parties encrypt and decrypt data from each other[4]. We chose to use
-symmetric key encryption because the data owner is the sole participant authorized to read the
-contents of files they own.
+pairs to allow multiple parties encrypt and decrypt data from each other [12]. We use
+symmetric key encryption because the data owner is the sole participant authorized to
+read the contents of files they own.
 
 File owners can now be confident in the privacy of their data with the introduction of
-private key encryption. The primary advantage of encrypting data client-side is that the data
-doesn’t even enter the network without first being encrypted. Further, the information required to
-decrypt the data (the private key) is never shared with other participants. There is no need to
-trust file hosts to keep our files safe: they couldn’t read, share, or sell our information even if
-they wanted to.
+private key encryption. The primary advantage of encrypting data client-side is that the
+data doesn’t even enter the network without first being encrypted. Further, the
+information required to decrypt the data (the private key) is never shared with other
+participants. There is no need to trust file hosts to keep our files safe: they couldn’t
+read, share, or sell our information even if they wanted to.
 
 ### Uploading large files
-Our private file content is now more secure when we send it across the network to
-another host, but we have a large problem: large files. If we send a file larger than the space on
-our host’s hard drive the upload will fail. Downloading large files is also burden for file hosts due
-to the high bandwidth and storage requirements. How do we solve this space issue? Our
-answer was to break our files into smaller pieces, a process called file sharding, and then
-distribute these sharded files across multiple nodes on the network.
 
-File sharding involves splitting up files into smaller pieces, which raises some questions such as, how will we name our new file shards? We guessed that users would mostly be storing files with unique content, so our strategy to come up with unique file names was to have the shard’s file name be the hash the file content. If we chose to split up our files into four pieces, the process might look this.
+Our private file content is now more secure when we send it across the network to
+another host, but we have a large problem: large files. If we send a file larger than
+the space on our host’s hard drive the upload will fail. Downloading large files is also
+burden for file hosts due to the high bandwidth and storage requirements. How do we
+solve this space issue? Our answer was to break our files into smaller pieces, a process
+called file sharding, and then distribute these sharded files across multiple nodes on
+the network.
+
+File sharding involves splitting up files into smaller pieces, which raises some
+questions such as, how will we name our new file shards? We guessed that users would
+mostly be storing files with unique content, so our strategy to come up with unique file
+names was to have the shard’s file name be the hash the file content. If we chose to
+split up our files into four pieces, the process might look this.
 
 <figure>
   <center>
     <img src="diagrams/sharding.jpg" alt="sharding" />
   </center>
+  <figcaption>
+    <small><strong>File sharding process</strong></small>
+  </figcaption>
 </figure>
 
-Now that we’ve created file shards with unique names, how do we keep track of these smaller files? Even if we sent all of these small files to just one host, we wouldn’t be able to retrieve them again without some system in place to associate them with the original file. We can create a __manifest__ of the shards created per file upload to solve this problem for us.
+Now that we’ve created file shards with unique names, how do we keep track of these
+smaller files? Even if we sent all of these small files to just one host, we wouldn’t be
+able to retrieve them again without some system in place to associate them with the
+original file. We can create a manifest of the shards created per file upload to solve
+this problem for us.
 
 #### Keeping track of shards
-With the introduction of file sharding, we’re a step closer to being able to store files distributed across independent file hosts. Next, we need to solve how to keep track of the many shards associated with a single file. We chose to do this by creating a manifest file on file upload. When a user uploads a file to the network, their file is sharded, shard names are saved to the manifest, and then those shards are distributed to the network. Here’s what the upload process would look like with four shards and hosts.
+
+With the introduction of file sharding, we’re a step closer to being able to store files
+distributed across independent file hosts. Next, we need to solve how to keep track of
+the many shards associated with a single file. Inspired by a MIT paper description of
+decentralized storage project for keeping track file “chunks” using of a dictionary [13], we
+chose to do this by creating a __manifest__ file on file upload. When a user uploads a file
+to the network, their file is sharded, shard names are saved to the manifest, and then
+those shards are distributed to the network. Here’s what the upload process would look
+like with four shards and four hosts.
 
 <figure>
   <center>
-    <img src="diagrams/distribute_file.jpg" alt="distribute file" />
+    <img src="diagrams/distribute_file.jpg" alt="File upload using a manifest file" />
   </center>
+  <figcaption>
+    <small><strong>The file upload process after manifest files are added</strong></small>
+  </figcaption>
 </figure>
 
-Here’s what a completed manifest file looks like. Another purpose the manifest file serves is preserving the order of shards so that the file can be correctly reconstructed in the future.
+Here’s what a completed manifest file looks like. Another purpose the manifest file
+serves is preserving the order of shards so that the file can be correctly reconstructed
+in the future.
 
 ```javascript
 {
@@ -314,11 +370,23 @@ We had two choices, each with different advantages.
  1. Constant-shard-count: Create a set number of shards regardless of file size.
  2. Shard-by-file-size: The shard size is set at a maximum, so the number of shards varies based on the file’s size.
 
-The advantage of the constant-shard-count approach was that n early stages of the development process simpler because we easily tell when something was wrong by counting the files without having to reference the file’s size. Furthermore, it limited how large a manifest could grow for larger files. The advantage to shard-by-file-size approach was that we could guarantee that shard sizes would remain small. Our team chose to start off with the constant-shard-count approach mainly because it make the development process easier in the early stages. This is an area that we’re continuing to evaluate and test as we continue development.
+The advantage of the constant-shard-count approach was that n early stages of the
+development process simpler because we easily tell when something was wrong by counting
+the files without having to reference the file’s size. Furthermore, it limited how large
+a manifest could grow for larger files. The advantage to shard-by-file-size approach was
+that we could guarantee that shard sizes would remain small. Our team chose to start off
+with the constant-shard-count approach mainly because it make the development process
+easier in the early stages. This is an area that we’re continuing to evaluate and test
+as we continue development.
 
-We have a smaller shard files and a way to associate them with a file, but recall that our goal is to send these shards to multiple different nodes so that we’re able to upload larger files. That brings up the next challenge, which is how to keep track shards after we’ve sent them to different nodes. We’ll look at a couple systems for doing so.
+We have a smaller shard files and a way to associate them with a file, but recall that
+our goal is to send these shards to multiple different nodes so that we’re able to
+upload larger files. That brings up the next challenge, which is how to keep track
+shards after we’ve sent them to different nodes. We’ll look at a couple systems for
+doing so.
 
 ### Locating shards and nodes on the network
+
 Now that our systems contains file shards and a network of nodes, our file upload process has become more complicated. The core problem is if we randomly distribute our shards across the network, we currently have no system for retrieving them.
 
 1. Retrievability: As we mentioned if we upload a shard we need to be able find it again
@@ -328,24 +396,44 @@ The first solution to this problem was to maintain a full list of all node conta
 
 <figure>
   <center>
-    <img src="diagrams/distribute_file_2.jpg" alt="distribute file 2" />
+    <img src="diagrams/distribute_file_2.jpg" alt="File upload using node master lists" />
   </center>
+  <figcaption>
+    <small><strong>File upload process where each node maintains a "master list" of other nodes</strong></small>
+  </figcaption>
 </figure>
 
 This works ok, but won’t work well as our network grows in size for a couple reasons:
 
 - All nodes are potential uploaders. Therefore each node needs to hold its complete own node list.
 - Difficult to maintain consistency. Each of these individual lists would need to be updated whenever a node left or joined the network to maintain a consist representation of the network’s state.
-- List bloat. A large n of nodes will make our node list grow too large to be handled efficiently. What if we have millions or billions of nodes on our network? An O(n) space complexity for our routing nodes list will not work well in that case.
+- List bloat. A large _n_ of nodes will make our node list grow too large to be handled efficiently. What if we have millions or billions of nodes on our network? An O(n) space complexity for our node routing list will not work well in that case.
 
 &nbsp;
 #### A more sophisticated routing scheme: “closeness”
-We now know that unfortunately we can’t maintain giant, comprehensive lists of all nodes on our network. Stepping away from the world of nodes and files, let’s think about another type of network: human social networks. There are many people in the world, but if we want to find a person we thankfully don’t need to know the contact information of everyone in the world. Let’s look at a somewhat contrived example where we assume that the best way to reach another person that we don’t know ourselves is to contact people we do know who are geographically closer to the person we’re trying to reach. Here’s how someone named Alice in San Francisco, California might iteratively search through her contacts, and contact’s contacts, for someone in New York, New York. Each time she relies on the geographically closest contact to Bob query their list of contacts for geographically closer contacts, and so on.
+
+We now know that unfortunately we can’t maintain giant, comprehensive lists of all nodes
+on our network. To come up with an a better solution to this problem, let's step away
+from the world of nodes and files, let’s think about another type of network: human
+social networks.
+
+There are many people in the world, but if we want to find a person we
+thankfully don’t need to know the contact information of everyone in the world. Let’s
+imagine at a somewhat contrived example where we assume that the best way to reach another
+person that we don’t know ourselves is to contact people we do know who are
+geographically closer to the person we’re trying to reach. Here’s how someone named
+Alice in San Francisco, California might iteratively search through her contacts, and
+contact’s contacts, for someone in New York, New York. Each time she relies on the
+geographically closest contact to Bob query their list of contacts for geographically
+closer contacts, and so on.
 
 <figure>
   <center>
     <img src="diagrams/geographical_closeness.jpg" alt="geographical closeness" />
   </center>
+  <figcaption>
+    <small><strong>Using increasingly geographically closer contacts to find a person</strong></small>
+  </figcaption>
 </figure>
 
 Let’s go back to thinking about the problem of one node needing to upload a file to another node.
@@ -354,7 +442,7 @@ shard when we download it later and b) not require a full list of nodes on the n
 we covered above. The method we’ll use to decide the node-shard relationship will be a type of
 __logical closeness__: the node id “closest” to the file id will be the node to host the file.
 
-It would require going into too much detail to explain this process, but what we will say is that a Kademlia distributed hash table (DHT) provides the routing and communication protocol between nodes[5]. The Kadmelia is a more widely used flavour of DHT, for example by BitTorrent and Ethereum[6][7].
+It would require going into too much detail to explain this process, but what we will say is that a Kademlia distributed hash table (DHT) provides the routing and communication protocol between nodes[5]. The Kadmelia is a more widely used flavor of DHT, for example by BitTorrent and Ethereum[6][7].
 
 #### Kademlia RPCs
 The specific protocol that Kademlia provides for communication are in four remote procedure calls (RPCs):
@@ -633,34 +721,54 @@ __generate__ that hash is (i.e. the raw file data itself). Therefore, the file h
   </figcaption>
 </figure>
 
-The advantages that this method has over pay-after-upload is that this method ensures that payment to data host implies that the file data is present on the data host’s machine
-__at the time of payment__. The data owner does not have to worry about paying for storing data that never even made it to the host, or that was deleted before the payment even went through.
+The advantages that this method has over pay-after-upload is that this method ensures
+that payment to data host implies that the file data is present on the data host’s
+machine __at the time of payment__. The data owner does not have to worry about paying
+for storing data that never even made it to the host, or that was deleted before the
+payment even went through.
 
 ---
 ## Limitations and Future Steps
 
 ### More sophisticated incentive scheme
+
 Although our pay-by-upload approach encourages hosts to participate in the network, it does not encourage cooperation over time. A file host cannot get paid without proving that they possess the correct data, but there is nothing stopping them from deleting the data after they’ve been paid. So, although we’ve made payments and proof of data possession atomic, there is no incentive for hosts to continue to store data over time. That is why we are working on implementing a pay-by-successful-audit incentive scheme. If we think about what file owners want out of the system, it’s available storage over time, not just immediate storage.
 
 ### Automated patching
+
 At present, a user storing a file on the network needs run a manual patch every so often. This is not very convenient for users, so we plan on exploring automation options in this area in the future.
 
 ### NAT Traversal
+
 Layr nodes are only able to communicate with other Layr nodes that have an openly addressable IP location on the internet. In other words, if a peer node has a private IP address because it is behind a NAT router, it will not be able to effectively communicate on the network. What this means in practical terms is, servers on hosted services like Digital Ocean or Amazon EC2 work with Layr but your personal devices at home often do not. While our team did not have time to implement any of the NAT strategies we researched, we plan to introduce one or more into the project in the future.
 
 ---
 ## Works cited
-1. https://www.computer.org/csdl/proceedings/p2p/2001/1503/00/15030101.pdf
-2. https://en.wikipedia.org/wiki/Advanced_Encryption_Standard
-3. https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Initialization_vector_(IV)
-4. https://hackernoon.com/symmetric-and-asymmetric-encryption-5122f9ec65b1
-5. https://pdos.csail.mit.edu/~petar/papers/maymounkov-kademlia-lncs.pdf
-6. http://www.bittorrent.org/beps/bep_0005.html
-7. https://github.com/ethereum/wiki/wiki/Kademlia-Peer-Selection
-8. https://kadence.github.io/index.html
-9. https://storj.io/storj.pdf, page 12
-10. https://docs.storj.io/discuss/5762802b653c2d2200fec87b
-11. https://blog.sia.tech/addressing-thoughtful-concerns-about-sias-security-viability-103ccfff5e92
+
+1. https://www.cnet.com/news/google-reports-all-time-high-of-government-data-requests
+2. https://www.ll.mit.edu/mission/cybersec/publications/publication-files/full_papers/2016_Itkis_TR-1210.pdf
+3. https://www.ibtimes.co.uk/icloud-accounts-risk-brute-force-attack-hacker-exploits-painfully-obvious-password-flaw-1481623
+4. https://www.theguardian.com/technology/2016/aug/31/dropbox-hack-passwords-68m-data-breach
+5. https://storj.io/storj.pdf, pg. 2
+6. https://www.usatoday.com/story/tech/news/2017/02/28/amazons-cloud-service-goes-down-sites-scramble/98530914/
+7. https://storj.io/storj.pdf, pg. 2
+7. https://www.computer.org/csdl/proceedings/p2p/2001/1503/00/15030101.pdf, pg. 1
+8. https://nodejs.org/en/docs/guides/blocking-vs-non-blocking/
+9. https://en.wikipedia.org/wiki/Advanced_Encryption_Standard
+10. https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Initialization_vector_(IV)
+11. https://hackernoon.com/symmetric-and-asymmetric-encryption-5122f9ec65b1
+12. https://courses.csail.mit.edu/6.857/2014/files/14-pantawongdecha-tromba-voss-wang-blackbox.pdf, pg. 10
+13. https://pdos.csail.mit.edu/~petar/papers/maymounkov-kademlia-lncs.pdf
+14. http://www.bittorrent.org/beps/bep_0005.html
+15. https://github.com/ethereum/wiki/wiki/Kademlia-Peer-Selection
+16. https://kadence.github.io/index.html
+17. https://xorro-p2p.github.io/resources/
+18. https://tams.informatik.uni-hamburg.de/lehre/2004ss/vorlesung/medientechnik/material/kpres.pdf
+19. https://www.ll.mit.edu/mission/cybersec/publications/publication-files/full_papers/2016_Itkis_TR-1210.pdf, pg. 24
+20. https://storj.io/storj.pdf, pg. 12
+21. https://storj.io/storj.pdf, pg. 12
+22. https://www.reddit.com/r/storj/comments/6yw2x5/only_3_nodes_per_file/
+23. https://storj.io/storj.pdf, pg. 4
 
 ---
 ## Our Team
