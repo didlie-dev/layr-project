@@ -807,6 +807,8 @@ Layr nodes are only able to communicate with other Layr nodes that have an openl
 ---
 ## Our Team
 
-We are all available for new opportunities, feel free to reach out!
+Here's the team that built Layr :)
 
 {% include team.html %}
+
+Dylan and Flo are available for new opportunities, feel free to reach out!
