@@ -330,11 +330,11 @@ this problem for us.
 With the introduction of file sharding, we’re a step closer to being able to store files
 distributed across independent file hosts. Next, we need to solve how to keep track of
 the many shards associated with a single file. Inspired by a MIT paper description of
-decentralized storage project for keeping track file “chunks” using of a dictionary [13], we
-chose to do this by creating a __manifest__ file on file upload. When a user uploads a file
-to the network, their file is sharded, shard names are saved to the manifest, and then
-those shards are distributed to the network. Here’s what the upload process would look
-like with four shards and four hosts.
+decentralized storage project for keeping track file “chunks” using of a dictionary
+[13], we chose to do this by creating a __manifest__ file on file upload. When a user
+uploads a file to the network, their file is sharded, shard names are saved to the
+manifest, and then those shards are distributed to the network. Here’s what the upload
+process would look like with four shards and four hosts.
 
 <figure>
   <center>
@@ -530,37 +530,66 @@ Our upload process for an entire file’s shards now looks like the diagram belo
 
 <figure>
   <center>
-    <img src="diagrams/redundant_upload_process.jpg" alt="redundant upload process" />
+    <img src="diagrams/kademlia_upload_process.jpg" alt="Kademlia upload process" />
   </center>
   <figcaption>
-    <small><strong>Redundant upload process</strong></small>
+    <small><strong>Uploading a file after adopting Kademlia</strong></small>
   </figcaption>
 </figure>
 
 ---
 #### Additional privacy benefits
-Now that we’re able to upload a file to multiple file shards across multiple nodes our files are more private than they were before. Previously, if a host gained access to to user’s private key the whole file’s privacy would be instantly compromised. Now, even if the host gains access to the key they will only have access to a small part of the file’s data. In terms of data privacy, our system is theoretically much stronger than a centralized storage systems’.
 
-Although file owners can now upload large files, they can not necessarily retrieve their files when they want to, which is a major limitation.
+Now that we’re able to upload a file to multiple file shards across multiple nodes our
+files are more private than they were before. Previously, if a host gained access to to
+user’s private key the whole file’s privacy would be instantly compromised. Now, even if
+the host gains access to the key they will only have access to a small part of the
+file’s data. In terms of data privacy, our system is theoretically much stronger than a
+centralized storage systems’.
+
+Although file owners can now upload large files, they can not necessarily retrieve their
+files when they want to, which is a major limitation.
 
 ### On-demand upload and download
-To ensure that owners can download uploaded files on-demand, we will need to make sure that each shard’s data is generally available for retrieval. Each individual shard is stored on a single host node, and since we can neither guarantee that the host will be online nor that it won’t modify or delete the data, the system cannot guarantee that all file shards will be available at a given point in time.
+
+To ensure that owners can download uploaded files on-demand, we will need to make sure
+that each shard’s data is generally available for retrieval. Each individual shard is
+stored on a single host node, and since we can neither guarantee that the host will be
+online nor that it won’t modify or delete the data, the system cannot guarantee that all
+file shards will be available at a given point in time.
 
 <figure>
   <center>
     <img src="diagrams/download_fail.jpg" alt="download fail" />
   </center>
+  <figcaption>
+    <small><strong>Since one shard is unavailable, the user's retrieved file contains "H orld" instead of "Hello World"</strong></small>
+  </figcaption>
 </figure>
 
-If we can decouple the status of any single storage provider and the availability of the files it is storing, we’ll have a more resilient file storage system. Having a single host hold each unique shard seems to be an issue, so we’ll take advantage of the additional nodes on the network by using them to store redundant shards copies. This general approach is called a
-__redundancy scheme__.
+If we can decouple the status of any single storage provider and the availability of the
+files it is storing, we’ll have a more resilient file storage system. Having a single
+host hold each unique shard seems to be an issue, so we’ll take advantage of the
+additional nodes on the network by using them to store redundant shards copies. This
+general approach is called a __redundancy scheme__.
 
-During our research, we came across two redundancy schemes used by many people. The first is called
-__mirroring__ and the second is __erasure coding__. Erasure coding introduces “wildcard”, or encoded, shards that can “substitute” in for any lost shard, which decreases the probability of losing access to a file. This a more advanced technique that even larger entities such as Storj had not implemented until recently[9]. We therefore opted to use mirroring, which is simply the distribution of multiple full copies of a file.
+During our research, we came across two redundancy schemes used by many people. The
+first is called __mirroring__ and the second is __erasure coding__[20]. Erasure coding
+introduces “wildcard”, or encoded, shards that can “substitute” in for any lost shard,
+which decreases the probability of losing access to a file [21]. This a more advanced
+technique that even larger entities such as Storj had not implemented until recently
+[22]. We therefore opted to use mirroring, which is simply the distribution of multiple
+full copies of a file.
 
-Given a single file, if a file owner is using mirroring, then they will upload complete copies of that file to multiple hosts. If one host’s hardware fails, or if a host deletes the data, another host has that file intact.
+Given a single file, if a file owner is using mirroring, then they will upload complete
+copies of that file to multiple hosts. If one host’s hardware fails, or if a host
+deletes the data, another host has that file intact.
 
-In terms of implementing mirroring in our system, the first problem to solve is how to reduce the likelihood that redundant shards will be sent to the same hosts node. Remember that when we distribute a shard to the network, the shard is sent to the node with the closest id to the shard’s id. Therefore if each redundant shard has the same id, there’s a high probability all shards will be sent to the same node.
+In terms of implementing mirroring in our system, the first problem to solve is how to
+reduce the likelihood that redundant shards will be sent to the same hosts node.
+Remember that when we distribute a shard to the network, the shard is sent to the node
+with the closest id to the shard’s id. Therefore if each redundant shard has the same
+id, there’s a high probability all shards will be sent to the same node.
 
 <figure>
   <center>
@@ -578,6 +607,13 @@ To solve this issue, we’ll need to generate unique shard file names. We do thi
   <center>
     <img src="diagrams/redundancy_basic_unique_ids.jpg" alt="redundancy basic unique ids" />
   </center>
+  <figcaption>
+    <small>
+      <strong>
+        Multiple nodes hold redundant shard copies to increase shard availability on the network
+      </strong>
+    </small>
+  </figcaption>
 </figure>
 
 The second problem to solve is how to organize the redundant shards with each other in the manifest. The way we organize in the manifest is as an array of values under a key which is the hash of the shard’s content. Below is a diagram demonstrating how a group of redundant shards would be organized in the manifest file during the upload process under the shard’s content hash `a15cv`.
@@ -586,25 +622,55 @@ The second problem to solve is how to organize the redundant shards with each ot
   <center>
     <img src="diagrams/redundant_upload_process.jpg" alt="redundant upload process" />
   </center>
+  <figcaption>
+    <small>
+      <strong>
+        Each redundant shard id is stored in the manifest under the file's hash
+      </strong>
+    </small>
+  </figcaption>
 </figure>
 
 ### Enforcing data integrity
-A redundancy scheme eliminates the single point of failure for a shard, but unfortunately it does not ensure that a file will be generally available to its owner for download. This is due to the fact that a peer to peer network is a low-to-no-trust environment - we can neither guarantee that the host holding shard will be online nor that it will preserve the shard’s contents. We therefore need a way to maintain a baseline level of redundancy on the network as time passes by responding to decreases in file redundancy.
 
-In order to respond to decreases in redundancy we first need to give file owners the ability to first detect decreases. File owners need a method to test whether the shards for their file on the network is available and unmodified.
+A redundancy scheme eliminates the single point of failure for a shard, but
+unfortunately it does not ensure that a file will be generally available to its owner
+for download. This is due to the fact that a peer to peer network is a low-to-no-trust
+environment - we can neither guarantee that the host holding shard will be online nor
+that it will preserve the shard’s contents. We therefore need a way to maintain a
+baseline level of redundancy on the network as time passes by responding to decreases in
+file redundancy.
+
+In order to respond to decreases in redundancy we first need to give file owners the
+ability to first detect decreases. File owners need a method to test whether the shards
+for their file on the network is available and unmodified.
 
 #### Proofs of Retrievability
 
-A proof of retrievability is, in its simplest sense, a procedure that tests whether a file is retrievable from a data host. A retrievable file is one whose original contents can be extracted from the data host supposedly storing that file. One important piece information that proofs of retrievability, or audits, can provide is how whether a given shard has fallen below the system baseline redundancy level for shards. We set the baseline redundancy level to three redundant copies because this was previo the default value for Storj and Sia.[10][11]   
+A proof of retrievability is, in its simplest sense, a procedure that tests whether a
+file is retrievable from a data host. A retrievable file is one whose original contents
+can be extracted from the data host supposedly storing that file. One important piece
+information that proofs of retrievability, or audits, can provide is how whether a given
+shard has fallen below the system baseline redundancy level for shards. We set the
+baseline redundancy level to three redundant copies because this was previously the
+default value used by Storj [23].
 
-The current literature shows that an ideal Proof of Retrievability (PoR) has the following properties:
+The consensus [24] is that an ideal Proof of Retrievability (PoR) has the
+following properties:
 
 1. Reliable results: the host should not be able to verify the retrievability of the shard unless the shard is available and unmodified .
 2. Low storage burden for the file host and owner.
 3. Low computational and communication overhead for the data host and data owner.
 4. Unlimited audits: the number of proofs of retrievability that can be issued on the data should be unbounded.
 
-Given the time we had, we did not find a technique that met all four requirements. Security was the most important requirement, so we began by re-downloading the shard from the host to see if it matched the local shard on the owner’s device.
+Given the time we had, we did not find a technique that met all four requirements.
+Security was the most important requirement, so we began by re-downloading the shard
+from the host to see if it matched the local shard on the owner’s device to .
+
+__PoR Approach 1: Re-download shard from the host and compare__
+
+To see if the all file shards are available and intact, we re-download the shard from
+the host to see if it matched the local shard on the owner’s device.
 
 <figure>
   <center>
@@ -612,25 +678,64 @@ Given the time we had, we did not find a technique that met all four requirement
   </center>
 </figure>
 
-The first and largest problem with this approach is it requires the file owner to keep a local copy of the shard file so that the contents of each file could be compared in the first place. This violates our core definition of cloud storage, which specifies that a user must be able to delete the file upon uploading it to the network. The second problem is the high communication overhead: the data host has to send the entirety of the file data every time the data owner performs an audit.
+The first and largest problem with this approach is it requires the file owner to keep a
+local copy of the shard file so that the contents of each file could be compared in the
+first place. This violates our core definition of cloud storage, which specifies that a
+user must be able to delete the file upon uploading it to the network. The second
+problem is the high communication overhead: the data host has to send the entirety of
+the file data every time the data owner performs an audit.
 
-We’ve now learned we need a way to check if the file has been modified without retrieving or storing the file data. One option would be to just ask for the hash of the file we are auditing. This eliminates the need to store the file, since we  only need to store the file’s hash, which is already stored in the manifest. Although this strategy allows the file owner to delete their file after uploading it, minimize communication overhead, use infinite number of audits, and doesn’t require storing any information on the file host that we were not already storing, it has one fatal flaw: the data host can cheat an audit by storing the hash of the original file’s content rather than storing the file itself.
+We’ve now learned we need a way to check if the file has been modified without
+retrieving or storing the file data.
+
+__PoR Approach 2: Re-download and compare to stored hash__
+
+Storing a hash of the original file contents would help eliminate some of the problems
+with this first method. Using this method has two main benefits:
+
+1) We no longer need to keep the file around locally to compare to the downloaded
+version.  
+2) Implementing this method is relatively easy. We already store the hash of the
+original file's contents in the manifest.
 
 <figure>
   <center>
     <img src="diagrams/proof_of_retrievability.jpg" alt="audit process" />
   </center>
   <figcaption>
-    <small><strong>Data owner/verifier (left) requests the hash of the file with specified ID from the host (right).
-    The host reads and hashes the file and returns it to the data owner. The data owner checks the hash against the one
-    stored in the manifest file to verify the host's answer.
-    </strong></small>
+    <small>
+      <strong>
+        File owner/verifier (left) requests the hash of the file with specified ID from the host (right). The host reads and hashes the file and returns it to the file owner. The file owner checks the hash against the one stored in the manifest file to verify the host's answer.
+      </strong>
+    </small>
   </figcaption>
 </figure>
 
-Using the hash of the file’s contents is a step in the right direction, and it clearly brings about some benefits, especially by way of reducing communication overhead. However, we can use a modified version of this hash-based verification method which provides much higher confidence in the result of the audit while still keeping communication overhead low. That is, instead of simply asking for the hash of the file’s contents, which would allow the host to store the hash ahead of time, we can ask for the hash of the file’s contents plus a randomly generated challenge string. The host is unaware of the challenge string prior to audit, so they cannot pre-store the hash value of file data + challenge string. To ensure that the host can never pre-store an answer, the owner can never reuse a challenge string.
+Although this strategy allows the file owner to delete their file after uploading it,
+minimize communication overhead, use infinite number of audits, and doesn’t require
+storing any additional information on the file host or owner, it has one significant
+flaw: the data host can cheat an audit by storing the hash of the original file’s
+content rather than storing the file itself.
 
-If the data owner cannot reuse challenge strings, and if the data owner needs to be able to verify the host’s response by storing the correct hash value of the file data + challenge string, how can the data owner know the correct answer without holding onto the file they uploaded? Recall that our definition of cloud storage requires that the data owner be able to delete their files after uploading them. The way to do this is to pre-generate a series of challenges and the correct responses to those challenges.
+__PoR Approach 3: Pre-generating audits__
+
+Using the hash of the file’s contents is a step in the right direction, and it clearly
+brings about some benefits, especially by way of reducing communication overhead.
+However, we can use a modified version of this hash-based verification method which
+provides much higher confidence in the result of the audit while still keeping
+communication overhead low. That is, instead of simply asking for the hash of the file’s
+contents, which would allow the host to store the hash ahead of time, we can ask for the
+hash of the file’s contents plus a randomly generated challenge string. The host is
+unaware of the challenge string prior to audit, so they cannot pre-store the hash value
+of file data + challenge string. To ensure that the host can never pre-store an answer,
+the owner can never reuse a challenge string.
+
+If the data owner cannot reuse challenge strings, and if the data owner needs to be able
+to verify the host’s response by storing the correct hash value of the file data +
+challenge string, how can the data owner know the correct answer without holding onto
+the file they uploaded? Recall that our definition of cloud storage requires that the
+data owner be able to delete their files after uploading them. The way to do this is to
+pre-generate a series of challenges and the correct responses to those challenges.
 
 ```javascript
 {
